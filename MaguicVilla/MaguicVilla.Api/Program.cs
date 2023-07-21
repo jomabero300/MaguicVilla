@@ -1,5 +1,7 @@
 using MaguicVilla.Api;
 using MaguicVilla.Api.Data;
+using MaguicVilla.Api.Repository;
+using MaguicVilla.Api.Repository.IRepositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +18,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 });
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
+
+builder.Services.AddScoped<IVillaRepository,VillaRepository>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

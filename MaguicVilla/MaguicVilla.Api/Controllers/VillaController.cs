@@ -2,6 +2,7 @@
 using MaguicVilla.Api.Data;
 using MaguicVilla.Api.Models;
 using MaguicVilla.Api.Models.Dto;
+using MaguicVilla.Api.Repository.IRepositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -13,17 +14,17 @@ namespace MaguicVilla.Api.Controllers
     [ApiController]
     public class VillaController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-
         private readonly ILogger<VillaController> _logger;
+
+        private readonly IVillaRepository _villa;
 
         private readonly IMapper _mapper;
 
-        public VillaController(ILogger<VillaController> logger, ApplicationDbContext context, IMapper mapper)
+        public VillaController(ILogger<VillaController> logger, IMapper mapper, IVillaRepository villa)
         {
             _logger = logger;
-            _context = context;
             _mapper = mapper;
+            _villa = villa;
         }
 
         [HttpGet]
@@ -31,7 +32,7 @@ namespace MaguicVilla.Api.Controllers
         {
             _logger.LogInformation("Obtener las villas..");
 
-            IEnumerable<Villa> villaList = await _context.Villas.ToListAsync();
+            IEnumerable<Villa> villaList = await _villa.ObtenerTodos();
 
             return Ok(_mapper.Map<IEnumerable<VillaDto>>(villaList));
         }
@@ -48,7 +49,7 @@ namespace MaguicVilla.Api.Controllers
                 return BadRequest();
             }
 
-            var list = await _context.Villas.FirstOrDefaultAsync(x => x.Id == id);
+            var list = await _villa.Obtener(x => x.Id == id);
 
             if (list == null)
             {
@@ -70,7 +71,7 @@ namespace MaguicVilla.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            if(await _context.Villas.FirstOrDefaultAsync(v=>v.Nombre.ToUpper()==villaCreateDto.Nombre.ToUpper())!=null)
+            if(await _villa.Obtener(v=>v.Nombre.ToUpper()==villaCreateDto.Nombre.ToUpper())!=null)
             {
                 ModelState.AddModelError("VillaExiste", "La villa con este nombre ya existe..");
 
@@ -85,15 +86,7 @@ namespace MaguicVilla.Api.Controllers
             Villa model = _mapper.Map<Villa>(villaCreateDto);  
 
 
-            await _context.Villas.AddAsync(model);
-
-            await _context.SaveChangesAsync();
-
-            //villaDto.Id= _context.Villas.ToList().OrderByDescending(v=>v.Id).FirstOrDefault().Id+1;
-
-            //VillaStore.VillaList.Add(villaDto);
-
-            ////return Ok(villaDto);
+            await _villa.Create(model);
 
             return CreatedAtAction("GetVilla", new { id = model.Id }, model);
         }
@@ -110,16 +103,14 @@ namespace MaguicVilla.Api.Controllers
                 return BadRequest();
             }
 
-            Villa list = await _context.Villas.FirstOrDefaultAsync(x => x.Id == id);
+            Villa villa = await _villa.Obtener(x => x.Id == id);
 
-            if (list == null)
+            if (villa == null)
             {
                 return NotFound();
             }
 
-            _context.Villas.Remove(list);
-
-            await _context.SaveChangesAsync();
+            await _villa.Remover(villa);
 
             return NoContent();
         }
@@ -137,10 +128,7 @@ namespace MaguicVilla.Api.Controllers
 
             Villa model = _mapper.Map<Villa>(villaUpdateDto);
 
-
-            _context.Villas.Update(model);
-
-            await _context.SaveChangesAsync();
+            await _villa.Actualizar(model);
 
             return NoContent();
         }
@@ -156,7 +144,7 @@ namespace MaguicVilla.Api.Controllers
                 return BadRequest();
             }
 
-            var villa = await _context.Villas.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var villa = await _villa.Obtener(x => x.Id == id,tracked:false);
 
             if (villa == null)
             {
@@ -174,9 +162,7 @@ namespace MaguicVilla.Api.Controllers
             }
             Villa model = _mapper.Map<Villa>(villaDto); 
 
-            _context.Villas.Update(model);
-
-            await _context.SaveChangesAsync();
+            await _villa.Actualizar(model);
 
             return NoContent();
         }

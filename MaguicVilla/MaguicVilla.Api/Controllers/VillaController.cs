@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace MaguicVilla.Api.Controllers
 {
@@ -20,43 +21,76 @@ namespace MaguicVilla.Api.Controllers
 
         private readonly IMapper _mapper;
 
+        protected APIResponse _responsed;
+
         public VillaController(ILogger<VillaController> logger, IMapper mapper, IVillaRepository villa)
         {
             _logger = logger;
             _mapper = mapper;
             _villa = villa;
+            _responsed = new();
         }
 
         [HttpGet]
-        public async Task< ActionResult<IEnumerable<VillaDto>>> GetVillas()
+        public async Task< ActionResult<APIResponse>> GetVillas()
         {
-            _logger.LogInformation("Obtener las villas..");
+            try
+            {
+                _logger.LogInformation("Obtener las villas..");
 
-            IEnumerable<Villa> villaList = await _villa.ObtenerTodos();
+                IEnumerable<Villa> villaList = await _villa.ObtenerTodos();
 
-            return Ok(_mapper.Map<IEnumerable<VillaDto>>(villaList));
+                _responsed.Resultado = _mapper.Map<IEnumerable<VillaDto>>(villaList);
+                _responsed.StatusCode=HttpStatusCode.OK;
+                return Ok(_responsed);
+
+            }
+            catch (Exception ex)
+            {
+                _responsed.Existoso= false;
+                _responsed.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+
+            return _responsed;  
         }
 
         [HttpGet("id:int")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult< VillaDto>> GetVilla(int id)
+        public async Task<ActionResult< APIResponse>> GetVilla(int id)
         {
-            if (id == 0)
+            try
             {
-                _logger.LogInformation($"Error al traer villa con la Id {id}");
-                return BadRequest();
+                if (id == 0)
+                {
+                    _logger.LogInformation($"Error al traer villa con la Id {id}");
+
+                    _responsed.StatusCode=HttpStatusCode.BadRequest;
+                    _responsed.Existoso= false;
+                    return BadRequest(_responsed);
+                }
+
+                var list = await _villa.Obtener(x => x.Id == id);
+
+                if (list == null)
+                {
+                    _responsed.StatusCode =HttpStatusCode.NotFound;
+                    _responsed.Existoso= false;
+                    return NotFound(_responsed);
+                }
+                _responsed.Resultado = _mapper.Map<VillaDto>(list);
+                _responsed.StatusCode=HttpStatusCode.OK;
+                return Ok(_responsed);
+            }
+            catch (Exception ex)
+            {
+
+                _responsed.Existoso = false;
+                _responsed.ErrorMessages = new List<string>() { ex.ToString() };
             }
 
-            var list = await _villa.Obtener(x => x.Id == id);
-
-            if (list == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(_mapper.Map<VillaDto>(list));
+            return _responsed;
         }
 
         [HttpPost]
@@ -64,31 +98,46 @@ namespace MaguicVilla.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<VillaDto>> CrearVilla([FromBody] VillaCreateDto villaCreateDto)  
-        { 
-            if(!ModelState.IsValid)
+        public async Task<ActionResult<APIResponse>> CrearVilla([FromBody] VillaCreateDto villaCreateDto)  
+        {
+            try
             {
-                return BadRequest(ModelState);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (await _villa.Obtener(v => v.Nombre.ToUpper() == villaCreateDto.Nombre.ToUpper()) != null)
+                {
+                    ModelState.AddModelError("VillaExiste", "La villa con este nombre ya existe..");
+
+                    return BadRequest(ModelState);
+                }
+
+                if (villaCreateDto == null)
+                {
+                    return BadRequest(villaCreateDto);
+                }
+
+                Villa model = _mapper.Map<Villa>(villaCreateDto);
+                model.FechaActualizacion=DateTime.Now;
+                model.FechaActualizacion = DateTime.Now;
+
+                await _villa.Create(model);
+
+                _responsed.Resultado = model;
+                _responsed.StatusCode=HttpStatusCode.Created;
+
+                return CreatedAtAction("GetVilla", new { id = model.Id }, _responsed);
+
+            }
+            catch (Exception ex)
+            {
+                _responsed.Existoso = false;
+                _responsed.ErrorMessages = new List<string>() { ex.ToString() };
             }
 
-            if(await _villa.Obtener(v=>v.Nombre.ToUpper()==villaCreateDto.Nombre.ToUpper())!=null)
-            {
-                ModelState.AddModelError("VillaExiste", "La villa con este nombre ya existe..");
-
-                return BadRequest(ModelState);
-            }
-
-            if(villaCreateDto == null)
-            {
-                return BadRequest(villaCreateDto);
-            }
-
-            Villa model = _mapper.Map<Villa>(villaCreateDto);  
-
-
-            await _villa.Create(model);
-
-            return CreatedAtAction("GetVilla", new { id = model.Id }, model);
+            return _responsed;
         }
 
 
@@ -96,23 +145,37 @@ namespace MaguicVilla.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<VillaDto>> DeleteVilla(int id)
+        public async Task<ActionResult<APIResponse>> DeleteVilla(int id)
         {
-            if (id == 0)
+            try
             {
-                return BadRequest();
+                if (id == 0)
+                {
+                    _responsed.Existoso = false;
+                    _responsed.StatusCode= HttpStatusCode.BadRequest;
+                    return BadRequest(_responsed);
+                }
+
+                Villa villa = await _villa.Obtener(x => x.Id == id);
+
+                if (villa == null)
+                {
+                    _responsed.Existoso = false;
+                    _responsed.StatusCode = HttpStatusCode.NotFound;
+                    return NotFound(_responsed);
+                }
+
+                await _villa.Remover(villa);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _responsed.Existoso = false;
+                _responsed.ErrorMessages = new List<string>() { ex.ToString() };
             }
 
-            Villa villa = await _villa.Obtener(x => x.Id == id);
-
-            if (villa == null)
-            {
-                return NotFound();
-            }
-
-            await _villa.Remover(villa);
-
-            return NoContent();
+            return _responsed;
         }
 
         [HttpPut("id:int")]
@@ -121,16 +184,21 @@ namespace MaguicVilla.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdateVilla(int id, [FromBody] VillaUpdateDto villaUpdateDto)
         {
-            if (villaUpdateDto==null || id != villaUpdateDto.Id) 
-            { 
-                return BadRequest();
+            if (villaUpdateDto == null || id != villaUpdateDto.Id)
+            {
+                _responsed.Existoso = false;
+                _responsed.StatusCode = HttpStatusCode.BadRequest;
+                return BadRequest(_responsed);
             }
 
             Villa model = _mapper.Map<Villa>(villaUpdateDto);
 
             await _villa.Actualizar(model);
 
-            return NoContent();
+            _responsed.StatusCode = HttpStatusCode.NoContent;
+
+            return Ok(_responsed);
+
         }
 
         [HttpPatch("id:int")]
@@ -164,7 +232,9 @@ namespace MaguicVilla.Api.Controllers
 
             await _villa.Actualizar(model);
 
-            return NoContent();
+            _responsed.StatusCode=HttpStatusCode.NoContent;
+
+            return Ok(_responsed);
         }
     }
 }

@@ -4,6 +4,7 @@ using MaguicVilla.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaguicVilla.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230724190259_AddGps")]
+    partial class AddGps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.9")
+                .HasAnnotation("ProductVersion", "7.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -37,7 +40,7 @@ namespace MaguicVilla.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Gps");
+                    b.ToTable("Coordenadas");
                 });
 
             modelBuilder.Entity("MaguicVilla.Api.Models.GpsTrasabilidad", b =>
@@ -117,8 +120,8 @@ namespace MaguicVilla.Api.Migrations
                             Id = 1,
                             Amenida = "",
                             Detalle = "detalle de la villa",
-                            FechaActualizacion = new DateTime(2023, 7, 24, 16, 54, 35, 650, DateTimeKind.Local).AddTicks(4242),
-                            FechaCreacion = new DateTime(2023, 7, 24, 16, 54, 35, 650, DateTimeKind.Local).AddTicks(4252),
+                            FechaActualizacion = new DateTime(2023, 7, 24, 14, 2, 58, 834, DateTimeKind.Local).AddTicks(2590),
+                            FechaCreacion = new DateTime(2023, 7, 24, 14, 2, 58, 834, DateTimeKind.Local).AddTicks(2603),
                             ImagenUrl = "",
                             MetrosCuadrados = 50,
                             Nombre = "Villa Real",
@@ -130,8 +133,8 @@ namespace MaguicVilla.Api.Migrations
                             Id = 2,
                             Amenida = "",
                             Detalle = "detalle de la vista a la piscina",
-                            FechaActualizacion = new DateTime(2023, 7, 24, 16, 54, 35, 650, DateTimeKind.Local).AddTicks(4254),
-                            FechaCreacion = new DateTime(2023, 7, 24, 16, 54, 35, 650, DateTimeKind.Local).AddTicks(4255),
+                            FechaActualizacion = new DateTime(2023, 7, 24, 14, 2, 58, 834, DateTimeKind.Local).AddTicks(2605),
+                            FechaCreacion = new DateTime(2023, 7, 24, 14, 2, 58, 834, DateTimeKind.Local).AddTicks(2606),
                             ImagenUrl = "",
                             MetrosCuadrados = 40,
                             Nombre = "Premio Vista a la piscina",

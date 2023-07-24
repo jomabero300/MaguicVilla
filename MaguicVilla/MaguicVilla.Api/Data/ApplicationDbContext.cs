@@ -11,6 +11,8 @@ namespace MaguicVilla.Api.Data
 
         }
         public DbSet<Villa> Villas { get; set; }
+        public DbSet<Gps> Gps { get; set; }
+        public DbSet<GpsTrasabilidad> GpsTrasabilidads { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

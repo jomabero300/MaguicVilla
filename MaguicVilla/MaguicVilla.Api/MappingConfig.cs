@@ -13,6 +13,7 @@ namespace MaguicVilla.Api
 
             CreateMap<Villa,VillaCreateDto>().ReverseMap();
             CreateMap<Villa,VillaUpdateDto>().ReverseMap();
+            
         }
     }
 }
